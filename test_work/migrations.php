@@ -1,6 +1,10 @@
 <?php
+
 use Bitrix\Main\Loader;
 use Bitrix\Iblock\IblockTable;
+use Bitrix\Highloadblock\HighloadBlockTable;
+use Bitrix\Main\UserFieldTable;
+
 require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/header.php");
 
 Loader::includeModule('highloadblock');
@@ -29,8 +33,8 @@ $iblockTypeFields = [
 ];
 $iblockTypeResult = CIBlockType::GetByID($iblockTypeFields['ID'])->Fetch();
 $arResult['typeIblock'] = $iblockTypeResult['ID'];
-if(!$iblockTypeResult) {
-    echo 'Создаем типа инфоблок..'.PHP_EOL;
+if (!$iblockTypeResult) {
+    echo 'Создаем типа инфоблок..' . PHP_EOL;
     $arResult['typeIblock'] = $iblockType->Add($iblockTypeFields);
 }
 
@@ -55,12 +59,12 @@ $rsIblockResult = IblockTable::getList([
 ])->fetch()['ID'];
 $arResult['iblock'] = $rsIblockResult;
 if (empty($rsIblockResult)) {
-    echo 'Создаем инфоблок..'.PHP_EOL;
+    echo 'Создаем инфоблок..' . PHP_EOL;
     $arResult['iblock'] = $iblock->Add($iblockFields);
 }
 
 //создаем свойства инфоблока
-$oPropsIblockResult = CIBlockProperty::GetList(Array("sort"=>"asc", "name"=>"asc"), Array( "IBLOCK_ID"=>$arResult['iblock']));
+$oPropsIblockResult = CIBlockProperty::GetList(array("sort" => "asc", "name" => "asc"), array("IBLOCK_ID" => $arResult['iblock']));
 while ($arProp = $oPropsIblockResult->Fetch()) {
     $arPropsIblockResult[] = $arProp;
 }
@@ -157,12 +161,270 @@ foreach ($arPropsIblock as $arProp) {
             if (!$oProperty->Add($arPropFields)) {
                 throw new \Exception("Ошибка при добавлении свойства {$arPropFields['CODE']}: " . $oProperty->LAST_ERROR);
             }
+            echo "Создано свойство {$arProp["CODE"]}";
         }
-        echo "Свойство {$arProp["CODE"]} уже есть".PHP_EOL;
+        echo "Свойство {$arProp["CODE"]} уже есть" . PHP_EOL;
     }
 }
+Loader::IncludeModule("highloadblock");
+$arHlBlockBlock = [
+    'NAME' => 'Sostavzayavki1',
+    'TABLE_NAME' => 'sostavzayavki'
+];
+$rsHlBlock = HighloadBlockTable::getList([
+    'filter' => [
+        '=NAME' => $arHlBlockBlock['NAME']
+    ],
+    'select' => [
+        'ID'
+    ]
+])->fetch();
+$arResult['hlBlock'] = $rsHlBlock['ID'];
+if (!$rsHlBlock) {
+    $hlblock = HighloadBlockTable::add($arHlBlockBlock);
+    if (!$hlblock->isSuccess()) {
+        throw new \Exception(implode('; ', $hlblock->getErrorMessages()));
+    }
+    $arResult['hlBlock'] = $hlblock->getId();
+    //Добавление пользовательских полей
+    $userTypeEntity = new CUserTypeEntity();
 
-
-echo '<pre>';
-print_r($arPropsIblockResult);
-echo '</pre>';
+    $arUserFields = [
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_COUNT',
+            'USER_TYPE_ID' => 'string',
+            'XML_ID' => '',
+            'SORT' => 100,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'SIZE' => 20,
+                'ROWS' => 1,
+                'REGEXP' => '',
+                'MIN_LENGTH' => 0,
+                'MAX_LENGTH' => 0,
+                'DEFAULT_VALUE' => '',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'Колличество', 'en' => 'Count'],
+            'LIST_COLUMN_LABEL' => ['ru' => 'Колличество', 'en' => ''],
+            'LIST_FILTER_LABEL' => ['ru' => 'Колличество', 'en' => ''],
+        ],
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_PACK',
+            'USER_TYPE_ID' => 'string',
+            'XML_ID' => '',
+            'SORT' => 100,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'SIZE' => 20,
+                'ROWS' => 1,
+                'REGEXP' => '',
+                'MIN_LENGTH' => 0,
+                'MAX_LENGTH' => 0,
+                'DEFAULT_VALUE' => '',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'Фасовка', 'en' => 'pack'],
+            'LIST_COLUMN_LABEL' => ['ru' => 'Фасовка', 'en' => 'pack'],
+            'LIST_FILTER_LABEL' => ['ru' => 'Фасовка', 'en' => 'pack'],
+        ],
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_CLIENT',
+            'USER_TYPE_ID' => 'string',
+            'XML_ID' => '',
+            'SORT' => 100,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'SIZE' => 20,
+                'ROWS' => 1,
+                'REGEXP' => '',
+                'MIN_LENGTH' => 0,
+                'MAX_LENGTH' => 0,
+                'DEFAULT_VALUE' => '',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'Клиент', 'en' => 'Client'],
+            'LIST_COLUMN_LABEL' => ['ru' => 'Клиент', 'en' => 'Client'],
+            'LIST_FILTER_LABEL' => ['ru' => 'Клиент', 'en' => 'Client'],
+        ],
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_BRAND',
+            'USER_TYPE_ID' => 'enumeration',
+            'XML_ID' => '',
+            'SORT' => 100,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'DISPLAY' => 'LIST',
+                'LIST_HEIGHT' => 1,
+                'CAPTION_NO_VALUE' => '',
+                'SHOW_NO_VALUE' => 'Y',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'Бренд', 'en' => 'brend'],
+            'VALUES' => [
+                'n0' => [
+                    'VALUE' => 'Бренд 1',
+                    'DEF' => 'N',
+                    'SORT' => 500,
+                ],
+                'n1' => [
+                    'VALUE' => 'Бренд 2',
+                    'DEF' => 'N',
+                    'SORT' => 500,
+                ],
+                'n2' => [
+                    'VALUE' => 'Бренд 3',
+                    'DEF' => 'N',
+                    'SORT' => 500,
+                ],
+            ]
+        ],
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_NAME',
+            'USER_TYPE_ID' => 'string',
+            'XML_ID' => '',
+            'SORT' => 100,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'SIZE' => 20,
+                'ROWS' => 1,
+                'REGEXP' => '',
+                'MIN_LENGTH' => 0,
+                'MAX_LENGTH' => 0,
+                'DEFAULT_VALUE' => '',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'Наименование', 'en' => 'Name'],
+        ],
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_DESCRIPTION',
+            'USER_TYPE_ID' => 'string',
+            'XML_ID' => '',
+            'SORT' => 100,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'SIZE' => 20,
+                'ROWS' => 1,
+                'REGEXP' => '',
+                'MIN_LENGTH' => 0,
+                'MAX_LENGTH' => 0,
+                'DEFAULT_VALUE' => '',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'Описание'],
+        ],
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_FULL_DESCRIPTION',
+            'USER_TYPE_ID' => 'string',
+            'XML_ID' => '',
+            'SORT' => 100,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'SIZE' => 20,
+                'ROWS' => 1,
+                'REGEXP' => '',
+                'MIN_LENGTH' => 0,
+                'MAX_LENGTH' => 0,
+                'DEFAULT_VALUE' => '',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'Полное описание'],
+        ],
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_XML_ID',
+            'USER_TYPE_ID' => 'string',
+            'XML_ID' => '',
+            'SORT' => 100,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'SIZE' => 20,
+                'ROWS' => 1,
+                'REGEXP' => '',
+                'MIN_LENGTH' => 0,
+                'MAX_LENGTH' => 0,
+                'DEFAULT_VALUE' => '',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'XML_ID', 'en' => 'XML_ID'],
+        ],
+        [
+            'ENTITY_ID' => 'HLBLOCK_',
+            'FIELD_NAME' => 'UF_SORT',
+            'USER_TYPE_ID' => 'integer',
+            'XML_ID' => '',
+            'SORT' => 300,
+            'MULTIPLE' => 'N',
+            'MANDATORY' => 'N',
+            'SHOW_FILTER' => 'N',
+            'SHOW_IN_LIST' => 'Y',
+            'EDIT_IN_LIST' => 'Y',
+            'IS_SEARCHABLE' => 'N',
+            'SETTINGS' => [
+                'SIZE' => 20,
+                'MIN_VALUE' => 0,
+                'MAX_VALUE' => 0,
+                'DEFAULT_VALUE' => '',
+            ],
+            'EDIT_FORM_LABEL' => ['ru' => 'Сортировка'],
+        ]
+    ];
+    $arUserFieldsHl = UserFieldTable::getList([
+        'filter' => [
+            'ENTITY_ID' => 'HLBLOCK_'.$arResult['hlBlock']
+        ]
+    ])->fetchAll();
+    foreach ($arUserFields as $arValue) {
+        $arValue['ENTITY_ID'] .= $arResult['hlBlock'];
+        if (!in_array( $arValue['ENTITY_ID'], array_column($arUserFieldsHl, 'FIELD_NAME'))) {
+            if ($intUserTypeEntity = $userTypeEntity->Add($arValue)) {
+                if ($arValue['USER_TYPE_ID'] === 'enumeration' && !empty($arValue['VALUES'])) {
+                    $arUserFieldsEnum = new CUserFieldEnum();
+                    echo '<pre>';
+                    print_r([$intUserTypeEntity, $arValue['VALUES']]);
+                    echo '</pre>';
+                    $arUserFieldsEnum->SetEnumValues($intUserTypeEntity, $arValue['VALUES']);
+                }
+            }
+        }
+    }
+}
