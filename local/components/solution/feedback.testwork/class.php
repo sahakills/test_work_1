@@ -12,9 +12,11 @@ use Bitrix\Main\Loader;
 use Bitrix\Main\SystemException;
 use Bitrix\Main\UserFieldTable;
 use Bitrix\Highloadblock as HL;
+use Bitrix\Main\Mail\Event;
 
 class FeedbackTestWork extends CBitrixComponent implements Controllerable
 {
+    private $eventEmail = 'FEEDBACK_TEST_WORK';
     public function configureActions()
     {
         return [
@@ -32,6 +34,7 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
         $arRequestFile = Application::getInstance()->getContext()->getRequest()->getFileList()->toArray();
         try {
             $this->saveFeedback($arRequestPost, $arRequestFile);
+            $this->sendMail($arRequestPost);
             return true;
         } catch (\Exception $e) {
             $this->arResult['ERRORS'][] = $e->getMessage();
@@ -65,10 +68,28 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
                 'IBLOCK_ID' => 16, //TODO::Перейти на code
                 'PROPERTY_VALUES' => $arProps
             ];
-            $obElement->Add($arFields);
+            if (!$obElement->Add($arFields)) {
+                throw new Exception('Ошибка при сохранение элемента');
+            };
         } catch (\InvalidArgumentException $e) {
             return $e->getMessage();
         }
+    }
+
+    private function sendMail($arFields)
+    {
+        $arMailDate = [];
+        foreach ($arFields['FIELDS'] as $key => $sValue) {
+            $arMailDate[$key] = $sValue;
+        }
+        if (!empty($arFields['COMPOUND'])) {
+            $arMailDate['COMPOUND'] = $arFields['COMPOUND'];
+        }
+        Event::send([
+            $this->eventEmail,
+            SITE_ID,
+            $arMailDate
+        ]);
     }
 
     private function checkFields(array $requestFields)

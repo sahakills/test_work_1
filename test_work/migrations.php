@@ -4,6 +4,8 @@ use Bitrix\Main\Loader;
 use Bitrix\Iblock\IblockTable;
 use Bitrix\Highloadblock\HighloadBlockTable;
 use Bitrix\Main\UserFieldTable;
+use Bitrix\Main\Mail\EventMessageTable;
+use Bitrix\Main\Mail\EventTypeTable;
 
 require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/header.php");
 
@@ -419,12 +421,59 @@ if (!$rsHlBlock) {
             if ($intUserTypeEntity = $userTypeEntity->Add($arValue)) {
                 if ($arValue['USER_TYPE_ID'] === 'enumeration' && !empty($arValue['VALUES'])) {
                     $arUserFieldsEnum = new CUserFieldEnum();
-                    echo '<pre>';
-                    print_r([$intUserTypeEntity, $arValue['VALUES']]);
-                    echo '</pre>';
                     $arUserFieldsEnum->SetEnumValues($intUserTypeEntity, $arValue['VALUES']);
                 }
             }
         }
     }
 }
+// Параметры
+$eventName = 'FEEDBACK_TEST_WORK';
+
+//Создание типа почтового события
+$eventTypeResult = CEventType::GetList(['EVENT_NAME' => $eventName]);
+if (!$eventTypeResult->Fetch()) {
+    $et = new CEventType;
+    $etId = $et->Add([
+        'LID' => 'ru',
+        'EVENT_NAME' => $eventName,
+        'NAME' => 'Заявка с сайта',
+        'DESCRIPTION' => '#EMAIL_TO# - Email получателя\n#MESSAGE# - Текст сообщения',
+        'EVENT_TYPE' => 'email'
+    ]);
+    if ($etId) {
+        $arResult['MAIL_EVENT_TYPE'] = $eventName;
+    } else {
+        echo 'Ошибка при создании типа события\n';
+        return;
+    }
+} else {
+    $arResult['MAIL_EVENT_TYPE'] = $eventName;
+}
+
+//Создание шаблона почтового события
+$eventMessageResult = CEventMessage::GetList('ID', 'ASC', ['EVENT_NAME' => $eventName]);
+if (!$eventMessageResult->Fetch()) {
+    $em = new CEventMessage;
+    $templateId = $em->Add([
+        'ACTIVE' => 'Y',
+        'EVENT_NAME' => $eventName,
+        'LID' => [SITE_ID],
+        'EMAIL_FROM' => '#DEFAULT_EMAIL_FROM#',
+        'EMAIL_TO' => '#EMAIL_TO#',
+        'SUBJECT' => 'Новое сообщение с сайта',
+        'BODY_TYPE' => 'text',
+        'MESSAGE' => "Контактные данные #FIELDS# состав заявки #COMPOUND#" ,
+    ]);
+
+    if ($templateId) {
+        $arResult['MAIL_MESSAGE'] = $templateId;
+    } else {
+        echo "Ошибка при создании шаблона события: " . $em->LAST_ERROR . "\n";
+    }
+} else {
+    echo "Шаблон для '$eventName' уже существует\n";
+}
+echo '<pre>';
+print_r($arResult);
+echo '</pre>';
