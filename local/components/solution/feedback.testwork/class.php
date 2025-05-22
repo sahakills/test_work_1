@@ -88,7 +88,7 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
         Event::send([
             $this->eventEmail,
             SITE_ID,
-            $arMailDate
+            'C_FIELDS' => $arMailDate
         ]);
     }
 

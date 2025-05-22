@@ -13,7 +13,10 @@ Asset::getInstance()->addJs('/bitrix/js/main/jquery/jquery-3.6.0.min.js');
 
         <div class="form-group">
             <label for="title">Заголовок заявки</label>
-            <input type="text" class="form-control" name="FIELDS[NAME]">
+            <input type="text" class="form-control"  name="FIELDS[NAME]" required>
+            <div class="invalid-feedback">
+                Заполните заголовок
+            </div>
         </div>
         <? if (!empty($arResult['PROPS']['CATEGORY'])): ?>
             <div class="form-section">
@@ -21,8 +24,13 @@ Asset::getInstance()->addJs('/bitrix/js/main/jquery/jquery-3.6.0.min.js');
                 <? foreach ($arResult['PROPS']['CATEGORY'] as $key => $arItem): ?>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="FIELDS[CATEGORY]" id="cat<?= $key ?>"
-                               value="<?= $arItem['ID'] ?>">
+                               value="<?= $arItem['ID'] ?>" required>
                         <label class="form-check-label" for="cat<?= $key ?>"><?= $arItem['VALUE'] ?></label>
+                        <? if (!next($arResult['PROPS']['CATEGORY'])):?>
+                            <div class="invalid-feedback">
+                                Заполните категория
+                            </div>
+                        <? endif;?>
                     </div>
                 <? endforeach; ?>
             </div>
@@ -33,8 +41,13 @@ Asset::getInstance()->addJs('/bitrix/js/main/jquery/jquery-3.6.0.min.js');
                 <? foreach ($arResult['PROPS']['TYPE'] as $key => $arItem): ?>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="FIELDS[TYPE]" id="req<?= $key ?>"
-                               value="<?= $arItem['ID'] ?>">
+                               value="<?= $arItem['ID'] ?>" required>
                         <label class="form-check-label" for="req<?= $key ?>"><?= $arItem['VALUE'] ?></label>
+                        <? if (!next($arResult['PROPS']['TYPE'])):?>
+                            <div class="invalid-feedback">
+                                Заполните вид заявки
+                            </div>
+                        <? endif;?>
                     </div>
                 <? endforeach; ?>
             </div>
