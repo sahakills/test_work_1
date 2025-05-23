@@ -96,7 +96,7 @@ function validateFormData(formData, requiredFields, $form) {
     if (!isValid) {
         $form.addClass('was-validated')
     } else {
-        $form.find('.errors').html()
+        $form.find('.errors').empty()
         $form.removeClass('was-validated')
     }
 

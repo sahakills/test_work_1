@@ -9,18 +9,20 @@ use Bitrix\Main\Engine\Contract\Controllerable;
 use Bitrix\Iblock\PropertyEnumerationTable;
 use Bitrix\Iblock\PropertyTable;
 use Bitrix\Main\Loader;
-use Bitrix\Main\SystemException;
 use Bitrix\Main\UserFieldTable;
 use Bitrix\Highloadblock as HL;
 use Bitrix\Main\Mail\Event;
 use Bitrix\Main\Error;
 use Bitrix\Main\Errorable;
 use Bitrix\Main\ErrorCollection;
+use Bitrix\Iblock\IblockTable;
 
 class FeedbackTestWork extends CBitrixComponent implements Controllerable, Errorable
 {
     private $eventEmail = 'FEEDBACK_TEST_WORK';
     protected ErrorCollection $errorCollection;
+    protected $hlBlock = 2;
+    protected $iblockCode = 'FeedbackTest';
 
     public function configureActions()
     {
@@ -84,10 +86,20 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable, Error
         if (!empty($requestFields['COMPOUND'])) {
             $arProps['COMPOUND'] = $this->saveCompound($requestFields['COMPOUND']);
         }
-
+        $iblockID = IblockTable::getList([
+            'filter' => [
+                'CODE' => $this->iblockCode
+            ],
+            'select' => [
+                'ID'
+            ]
+        ])->fetch()['ID'];
+        if (empty($iblockID)) {
+            $this->errorCollection[] = new Error('Инфоблок не найден');
+        }
         $arFields = [
             'NAME' => $requestFields['FIELDS']['NAME'],
-            'IBLOCK_ID' => 16, //TODO::Перейти на code
+            'IBLOCK_ID' => $iblockID,
             'PROPERTY_VALUES' => $arProps
         ];
         if (!$obElement->Add($arFields)) {
@@ -161,8 +173,7 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable, Error
     private function saveCompound(array $arCompound): array
     {
         Loader::includeModule('highloadblock');
-        //TODO::Переделать
-        $entity = HL\HighloadBlockTable::compileEntity(2);
+        $entity = HL\HighloadBlockTable::compileEntity($this->hlBlock);
         $entityClass = $entity->getDataClass();
         $arResult = [];
         foreach ($arCompound as $arItem) {
@@ -199,7 +210,6 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable, Error
 
     private function GetPropertiesUser()
     {
-        //TODO::Переделать
         $userField = UserFieldTable::getList([
             'filter' => ['USER_TYPE_ID' => 'enumeration', 'FIELD_NAME' => 'UF_BRAND'],
         ])->fetch();
