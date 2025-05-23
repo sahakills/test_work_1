@@ -13,10 +13,15 @@ use Bitrix\Main\SystemException;
 use Bitrix\Main\UserFieldTable;
 use Bitrix\Highloadblock as HL;
 use Bitrix\Main\Mail\Event;
+use Bitrix\Main\Error;
+use Bitrix\Main\Errorable;
+use Bitrix\Main\ErrorCollection;
 
-class FeedbackTestWork extends CBitrixComponent implements Controllerable
+class FeedbackTestWork extends CBitrixComponent implements Controllerable, Errorable
 {
     private $eventEmail = 'FEEDBACK_TEST_WORK';
+    protected ErrorCollection $errorCollection;
+
     public function configureActions()
     {
         return [
@@ -28,6 +33,22 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
         ];
     }
 
+    public function onPrepareComponentParams($arParams)
+    {
+        $this->errorCollection = new ErrorCollection();
+        return $arParams;
+    }
+
+    public function getErrorByCode($code)
+    {
+        return $this->errorCollection->getErrorByCode($code);
+    }
+
+    public function getErrors()
+    {
+        return $this->errorCollection->toArray();
+    }
+
     public function feedbackSendAction()
     {
         $arRequestPost = Application::getInstance()->getContext()->getRequest()->getPostList()->toArray();
@@ -37,43 +58,41 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
             $this->sendMail($arRequestPost);
             return true;
         } catch (\Exception $e) {
-            $this->arResult['ERRORS'][] = $e->getMessage();
+            $this->errorCollection[] = new Error($e->getMessage());
+            return [
+                "result" => "Произошла ошибка",
+            ];
         }
-        return $this->arResult['ERRORS'];
     }
 
     private function saveFeedback(array $requestFields, array $requestFile)
     {
         Loader::includeModule('iblock');
-        try {
-            $this->checkFields($requestFields);
-            $obElement = new CIBlockElement;
-            $arProps = [
-                'CATEGORY' => $requestFields['FIELDS']['CATEGORY'],
-                'TYPE' => $requestFields['FIELDS']['TYPE'],
-                'STORE' => $requestFields['FIELDS']['STORE'],
-                'COMMENT' => $requestFields['FIELDS']['COMMENT'],
-            ];
+        $this->checkFields($requestFields);
+        $obElement = new CIBlockElement;
+        $arProps = [
+            'CATEGORY' => $requestFields['FIELDS']['CATEGORY'],
+            'TYPE' => $requestFields['FIELDS']['TYPE'],
+            'STORE' => $requestFields['FIELDS']['STORE'],
+            'COMMENT' => $requestFields['FIELDS']['COMMENT'],
+        ];
 
-            if (!empty($requestFile['FILE'])) {
-                $arProps['FILE'] = $this->saveFiles($requestFile);
-            }
-
-            if (!empty($requestFields['COMPOUND'])) {
-                $arProps['COMPOUND'] = $this->saveCompound($requestFields['COMPOUND']);
-            }
-
-            $arFields = [
-                'NAME' => $requestFields['FIELDS']['NAME'],
-                'IBLOCK_ID' => 16, //TODO::Перейти на code
-                'PROPERTY_VALUES' => $arProps
-            ];
-            if (!$obElement->Add($arFields)) {
-                throw new Exception('Ошибка при сохранение элемента');
-            };
-        } catch (\InvalidArgumentException $e) {
-            return $e->getMessage();
+        if (!empty($requestFile['FILE'])) {
+            $arProps['FILE'] = $this->saveFiles($requestFile);
         }
+
+        if (!empty($requestFields['COMPOUND'])) {
+            $arProps['COMPOUND'] = $this->saveCompound($requestFields['COMPOUND']);
+        }
+
+        $arFields = [
+            'NAME' => $requestFields['FIELDS']['NAME'],
+            'IBLOCK_ID' => 16, //TODO::Перейти на code
+            'PROPERTY_VALUES' => $arProps
+        ];
+        if (!$obElement->Add($arFields)) {
+            $this->errorCollection[] = new Error('Ошибка при сохранение элемента');
+        };
     }
 
     private function sendMail($arFields)
@@ -94,22 +113,17 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
 
     private function checkFields(array $requestFields)
     {
-        $errors = [];
 
         if (empty($requestFields['FIELDS']['NAME'])) {
-            $errors[] = "Не задано обязательное поле: Наименование";
+            $this->errorCollection[] = new Error('Поле заголвок не задано');
         }
 
         if (empty($requestFields['FIELDS']['CATEGORY'])) {
-            $errors[] = "Не задано обязательное поле: Категория";
+            $this->errorCollection[] = new Error('Поле категория не задано');
         }
 
         if (empty($requestFields['FIELDS']['TYPE'])) {
-            $errors[] = "Не задано обязательное поле: Тип";
-        }
-
-        if (!empty($errors)) {
-            throw new \InvalidArgumentException(implode("\n", $errors));
+            $this->errorCollection[] = new Error('Поле вид заявки не задано');
         }
     }
 
@@ -171,17 +185,15 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
         CModule::IncludeModule('iblock');
         $this->GetProperties();
         $this->GetPropertiesUser();
+        $this->errorCollection[] = new Error('test');
+        $this->arResult['ERRORS'] = $this->errorCollection;
         $this->includeComponentTemplate();
     }
 
     private function GetProperties()
     {
-        try {
-            foreach ($this->arParams['ENUM_PROPS'] as $sItem) {
-                $this->arResult['PROPS'][$sItem] = $this->getEnumPropertyValues($sItem);
-            }
-        } catch (\Exception $e) {
-            $this->arResult['ERRORS'][] = $e->getMessage();
+        foreach ($this->arParams['ENUM_PROPS'] as $sItem) {
+            $this->arResult['PROPS'][$sItem] = $this->getEnumPropertyValues($sItem);
         }
     }
 
@@ -193,7 +205,7 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
         ])->fetch();
 
         if (!$userField) {
-            throw new Exception('Пользовательское поле UF_BRAND не найдено');
+            $this->errorCollection[] = new Error('Пользовательское поле UF_BRAND не найдено');
         }
 
         $enumList = \CUserFieldEnum::getList([], [
@@ -207,50 +219,45 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable
     private function getEnumPropertyValues(string $propertyCode): array
     {
         if (empty($propertyCode) || $this->arParams['IBLOCK_ID'] <= 0) {
-            throw new \InvalidArgumentException("Не заданы обязательные параметры: код свойства или ID инфоблока.");
+            $this->errorCollection[] = new Error("Не заданы обязательные параметры: код свойства или ID инфоблока.");
+        }
+        // Получаем свойство по коду
+        $property = PropertyTable::getList([
+            'select' => ['ID'],
+            'filter' => [
+                'IBLOCK_ID' => $this->arParams['IBLOCK_ID'],
+                'CODE' => $propertyCode,
+                'ACTIVE' => 'Y'
+            ],
+            'limit' => 1
+        ])->fetch();
+
+        if (!$property) {
+            $this->errorCollection[] = new Error("Свойство с кодом '{$propertyCode}' не найдено в инфоблоке ID {$this->arParams['IBLOCK_ID']}.");
         }
 
-        try {
-            // Получаем свойство по коду
-            $property = PropertyTable::getList([
-                'select' => ['ID'],
-                'filter' => [
-                    'IBLOCK_ID' => $this->arParams['IBLOCK_ID'],
-                    'CODE' => $propertyCode,
-                    'ACTIVE' => 'Y'
-                ],
-                'limit' => 1
-            ])->fetch();
+        // Получаем значения списка
+        $arResult = [];
+        $enumResult = PropertyEnumerationTable::getList([
+            'select' => ['ID', 'VALUE', 'XML_ID', 'DEF', 'SORT'],
+            'filter' => ['PROPERTY_ID' => $property['ID']],
+            'order' => ['SORT' => 'ASC']
+        ]);
 
-            if (!$property) {
-                throw new \RuntimeException("Свойство с кодом '{$propertyCode}' не найдено в инфоблоке ID {$this->arParams['IBLOCK_ID']}.");
-            }
-
-            // Получаем значения списка
-            $arResult = [];
-            $enumResult = PropertyEnumerationTable::getList([
-                'select' => ['ID', 'VALUE', 'XML_ID', 'DEF', 'SORT'],
-                'filter' => ['PROPERTY_ID' => $property['ID']],
-                'order' => ['SORT' => 'ASC']
-            ]);
-
-            while ($enum = $enumResult->fetch()) {
-                $arResult[] = [
-                    'ID' => $enum['ID'],
-                    'VALUE' => $enum['VALUE'],
-                    'XML_ID' => $enum['XML_ID'],
-                    'DEF' => $enum['DEF'],
-                    'SORT' => $enum['SORT'],
-                ];
-            }
-
-            if (empty($arResult)) {
-                throw new \RuntimeException("У свойства '{$propertyCode}' нет доступных значений.");
-            }
-
-            return $arResult;
-        } catch (SystemException $e) {
-            throw new \RuntimeException("Ошибка при получении значений свойства: " . $e->getMessage());
+        while ($enum = $enumResult->fetch()) {
+            $arResult[] = [
+                'ID' => $enum['ID'],
+                'VALUE' => $enum['VALUE'],
+                'XML_ID' => $enum['XML_ID'],
+                'DEF' => $enum['DEF'],
+                'SORT' => $enum['SORT'],
+            ];
         }
+
+        if (empty($arResult)) {
+            $this->errorCollection[] = new Error("У свойства '{$propertyCode}' нет доступных значений.");
+        }
+
+        return $arResult;
     }
 }

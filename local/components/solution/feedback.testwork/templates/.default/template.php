@@ -24,7 +24,7 @@ Asset::getInstance()->addJs('/bitrix/js/main/jquery/jquery-3.6.0.min.js');
                 <? foreach ($arResult['PROPS']['CATEGORY'] as $key => $arItem): ?>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="FIELDS[CATEGORY]" id="cat<?= $key ?>"
-                               value="<?= $arItem['ID'] ?>" required>
+                               value="<?= $arItem['ID'] ?>">
                         <label class="form-check-label" for="cat<?= $key ?>"><?= $arItem['VALUE'] ?></label>
                         <? if (!next($arResult['PROPS']['CATEGORY'])):?>
                             <div class="invalid-feedback">
@@ -106,7 +106,7 @@ Asset::getInstance()->addJs('/bitrix/js/main/jquery/jquery-3.6.0.min.js');
             <label>Комментарий</label>
             <textarea class="form-control" name="FIELDS[COMMENT]" rows="3"></textarea>
         </div>
-
+        <div class="errors"></div>
         <button type="submit" class="btn btn-primary">Отправить</button>
     </form>
     <div class="feedback-answer justify-content-center align-content-center">

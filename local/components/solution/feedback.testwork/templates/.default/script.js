@@ -1,4 +1,4 @@
-$(function (){
+$(function () {
     $(document).on('click', '.add-row', function (e) {
         e.preventDefault()
         var row = $(this).closest('.request-item').clone();
@@ -19,7 +19,6 @@ $(function (){
     let $form = $('form[name="feedback"]')
     $form.attr('novalidate', true);
     $form.on('submit', function (e) {
-        console.log('send')
         e.preventDefault()
         e.stopPropagation()
         let formData = new FormData(this),
@@ -38,15 +37,25 @@ $(function (){
                     data: formData,
                 }
             ).then(function (response) {
-                if (response.data === true) {
-                    $form.hide()
-                    $('.feedback-answer').show()
+                    if (response.data === true) {
+                        $form.hide()
+                        $('.feedback-answer').show()
+                    }
+                }, function (response) {
+                    response.errors.forEach(function (value) {
+                        $form.find('.errors').append(
+                            `<div class="alert alert-danger" role="alert">\n` +
+                            `${value.message}` +
+                            `</div>`
+                        )
+                    })
                 }
-            })
+            );
         }
     })
+
     function updateCompoundIndiex() {
-        $('#requestItems .request-item').each(function(index) {
+        $('#requestItems .request-item').each(function (index) {
             $(this).find('select[name^="COMPOUND"]').attr('name', `COMPOUND[${index}][BRAND]`);
             $(this).find('input[name^="COMPOUND"][name*="[NAME]"]').attr('name', `COMPOUND[${index}][NAME]`);
             $(this).find('input[name^="COMPOUND"][name*="[COUNT]"]').attr('name', `COMPOUND[${index}][COUNT]`);
@@ -54,6 +63,7 @@ $(function (){
         });
     }
 })
+
 function validateFormData(formData, requiredFields, $form) {
     let isValid = true;
     requiredFields.forEach(function (fieldName) {
@@ -86,6 +96,7 @@ function validateFormData(formData, requiredFields, $form) {
     if (!isValid) {
         $form.addClass('was-validated')
     } else {
+        $form.find('.errors').html()
         $form.removeClass('was-validated')
     }
 
