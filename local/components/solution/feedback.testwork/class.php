@@ -111,14 +111,27 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable, Error
     {
         $arMailDate = [];
         foreach ($arFields['FIELDS'] as $key => $sValue) {
+            if ($key === 'CATEGORY') {
+                $sValue = $this->getEnumIdValue(intval($sValue));
+            }
+            if ($key === 'TYPE') {
+                $sValue = $this->getEnumIdValue(intval($sValue));
+            }
+            if ($key === 'STORE') {
+                $sValue = $this->getEnumIdValue(intval($sValue));
+            }
             $arMailDate[$key] = $sValue;
         }
         if (!empty($arFields['COMPOUND'])) {
+
+            foreach ($arFields['COMPOUND'] as &$arValue) {
+                $arValue['BRAND'] = $this->getUserEnumIdValue($arValue['BRAND']);
+            }
             $arMailDate['COMPOUND'] = $arFields['COMPOUND'];
         }
         Event::send([
-            $this->eventEmail,
-            SITE_ID,
+            'EVENT_NAME' => "FEEDBACK_TEST_WORK",
+            'LID' => SITE_ID,
             'C_FIELDS' => $arMailDate
         ]);
     }
@@ -269,5 +282,29 @@ class FeedbackTestWork extends CBitrixComponent implements Controllerable, Error
         }
 
         return $arResult;
+    }
+
+    private function getEnumIdValue(int $idProp): string
+    {
+        $enumResult = PropertyEnumerationTable::getList([
+            'select' => ['VALUE'],
+            'filter' => ['ID' => $idProp],
+            'order' => ['SORT' => 'ASC']
+        ])->fetch();
+        if (empty($enumResult['VALUE'])) {
+            $this->errorCollection[] = new Error("Не правильно передан id '{$idProp}' свойства.");
+        }
+        return  $enumResult['VALUE'];
+    }
+
+    private function getUserEnumIdValue(int $idProp): string
+    {
+        $rsResult = CUserFieldEnum::GetList([], [
+            'ID' => $idProp
+        ])->GetNext()['VALUE'];
+        if (empty($rsResult)) {
+            $this->errorCollection[] = new Error("Не правильно передан id '{$idProp}' свойства.");
+        }
+        return $rsResult;
     }
 }
